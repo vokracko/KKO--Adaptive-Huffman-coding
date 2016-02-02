@@ -56,7 +56,7 @@ int AHEDDecoding(tAHED *ahed, FILE *inputFile, FILE *outputFile)
 		while(i-- > 0)
 		{
 			bit = GET_MSB(c);
-			SHIFT(c);
+			SHIFT_LEFT(c);
 
 			node = bit == 1 ? node->right : node->left;
 

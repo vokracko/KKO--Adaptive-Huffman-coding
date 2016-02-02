@@ -30,8 +30,11 @@ typedef struct t_node
 	t_node * left, * right;
 } t_node;
 
-#define SHIFT(item) item <<= 1
+#define SHIFT_LEFT(item) item <<= 1
 #define GET_MSB(item) item & 0x70
+
+#define SHIFT_RIGHT(item) item >>= 1
+#define SET_MSB(item, bit) item |= bit
 
 
 /* Nazev:
