@@ -12,6 +12,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <stdbool.h>
+#include <stdlib.h>
 
 #define AHEDOK 0
 #define AHEDFail -1
@@ -26,8 +27,10 @@ typedef struct{
 
 typedef struct t_node
 {
-	int symbol;
-	t_node * left, * right;
+	int32_t symbol;
+	uint32_t frequency;
+	t_node * left;
+	t_node * right;
 } t_node;
 
 #define SHIFT_LEFT(item) item <<= 1

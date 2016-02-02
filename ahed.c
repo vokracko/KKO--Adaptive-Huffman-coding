@@ -7,6 +7,32 @@
 
 #include "ahed.h"
 
+t_node * create_node(int32_t symbol, t_node ** pointer)
+{
+	t_node * new = malloc(sizeof(t_node));
+
+	if(new == NULL)
+		return NULL;
+
+	if(pointer != NULL)
+		*pointer = new;
+
+	new->symbol = symbol;
+	new->frequency = 0;
+
+	return new;
+}
+
+void free_tree(t_node * root_node)
+{
+	if(root_node == NULL) return;
+
+	free_tree(root_node->left);
+	free_tree(root_node->right);
+
+	free(root_node);
+}
+
 /* Nazev:
  *   AHEDEncoding
  * Cinnost:
@@ -21,6 +47,26 @@
  */
 int AHEDEncoding(tAHED *ahed, FILE *inputFile, FILE *outputFile)
 {
+	ahed->codedSize = 0;
+	ahed->uncodedSize = 0;
+
+	t_node * root_node = create_node(-1, NULL);
+	int16_t c;
+
+	while((c = fgetc(inputFile)) != EOF)
+	{
+		if(ahed->uncodedSize == 0) // set first character plain
+		{
+			root_node->symbol = c;
+		    root_node->frequency++;
+			fprintf("%c", c);
+		}
+
+		ahed->uncodedSize++;
+	}
+
+	free_tree(root_node);
+
 	return AHEDOK;
 }
 
@@ -42,12 +88,10 @@ int AHEDDecoding(tAHED *ahed, FILE *inputFile, FILE *outputFile)
 	ahed->codedSize = 0;
 	ahed->uncodedSize = 0;
 
-	t_node * root_node = NULL;
-
-	// TODO zkonstruovat strom
+	t_node * root_node = create_node(-1, NULL);
 
 	t_node * node = root_node;
-	int c;
+	int16_t c;
 	bool bit;
 
 	while((c = fgetc(inputFile)) != EOF)
@@ -71,6 +115,7 @@ int AHEDDecoding(tAHED *ahed, FILE *inputFile, FILE *outputFile)
 		ahed->codedSize++;
 	}
 
+	free_tree(root_node);
 	// should stop at leaf node, othwerwise error
 	return node == root_node ? AHEDOK : AHEDFail;
 }
