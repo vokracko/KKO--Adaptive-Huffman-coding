@@ -1,7 +1,8 @@
+FLAGS=-std=c++11 -Wall -pedantic -Wextra
 all: main
 main:
-		gcc -O2 ahed.c main.c -o ahed
+		gcc $(FLAGS) -O2 ahed.cpp main.cpp -o ahed
 debug:
-		gcc -ggdb3 ahed.c main.c -o ahed
+		gcc $(FLAGS) -ggdb3 ahed.cpp main.cpp -o ahed
 
 
