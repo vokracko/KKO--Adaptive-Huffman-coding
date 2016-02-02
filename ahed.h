@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <stdbool.h>
 
 #define AHEDOK 0
 #define AHEDFail -1
@@ -28,6 +29,9 @@ typedef struct t_node
 	int symbol;
 	t_node * left, * right;
 } t_node;
+
+#define SHIFT(item) item <<= 1
+#define GET_MSB(item) item & 0x70
 
 
 /* Nazev:

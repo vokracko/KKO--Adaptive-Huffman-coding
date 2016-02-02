@@ -48,26 +48,30 @@ int AHEDDecoding(tAHED *ahed, FILE *inputFile, FILE *outputFile)
 
 	t_node * node = root_node;
 	int c;
+	bool bit;
 
 	while((c = fgetc(inputFile)) != EOF)
 	{
-		if(c == '1')
-			node = node->right;
-		else if(c == '0')
-			node = node->left;
-		else
-			return AHEDFail; 
-
-		if(node->symbol >= 0)
+		int i = 8;
+		while(i-- > 0)
 		{
-			ahed->uncodedSize++;
-			fprintf(outputFile, "%c", node->symbol);
-			node = root_node;
+			bit = GET_MSB(c);
+			SHIFT(c);
+
+			node = bit == 1 ? node->right : node->left;
+
+			if(node->symbol >= 0)
+			{
+				ahed->uncodedSize++;
+				fprintf(outputFile, "%c", node->symbol);
+				node = root_node;
+			}
 		}
 
 		ahed->codedSize++;
 	}
 
+	// should stop at leaf node, othwerwise error
 	return node == root_node ? AHEDOK : AHEDFail;
 }
 
