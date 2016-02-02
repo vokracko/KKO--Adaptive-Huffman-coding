@@ -38,7 +38,37 @@ int AHEDEncoding(tAHED *ahed, FILE *inputFile, FILE *outputFile)
  */
 int AHEDDecoding(tAHED *ahed, FILE *inputFile, FILE *outputFile)
 {
-	return AHEDOK;
+
+	ahed->codedSize = 0;
+	ahed->uncodedSize = 0;
+
+	t_node * root_node = NULL;
+
+	// TODO zkonstruovat strom
+
+	t_node * node = root_node;
+	int c;
+
+	while((c = fgetc(inputFile)) != EOF)
+	{
+		if(c == '1')
+			node = node->right;
+		else if(c == '0')
+			node = node->left;
+		else
+			return AHEDFail; 
+
+		if(node->symbol >= 0)
+		{
+			ahed->uncodedSize++;
+			fprintf(outputFile, "%c", node->symbol);
+			node = root_node;
+		}
+
+		ahed->codedSize++;
+	}
+
+	return node == root_node ? AHEDOK : AHEDFail;
 }
 
 

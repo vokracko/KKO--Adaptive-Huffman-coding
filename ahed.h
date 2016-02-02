@@ -23,6 +23,12 @@ typedef struct{
 	int64_t codedSize;
 } tAHED;
 
+typedef struct t_node
+{
+	int symbol;
+	t_node * left, * right;
+} t_node;
+
 
 /* Nazev:
  *   AHEDEncoding
@@ -52,6 +58,5 @@ int AHEDEncoding(tAHED *ahed, FILE *inputFile, FILE *outputFile);
  *    -1 - pøi dekodovani nastala chyba
  */
 int AHEDDecoding(tAHED *ahed, FILE *inputFile, FILE *outputFile);
-
 #endif
 
