@@ -45,7 +45,7 @@ int main(int argc, char **argv)
 	FILE * logfile = NULL;
 	tAHED ahed;
 	char c;
-	int res;
+	int res = 0;
 
 	while((c = getopt(argc, argv, "i:o:l:cxh")) != -1)
 	{
@@ -68,11 +68,11 @@ int main(int argc, char **argv)
 				break;
 			case 'h':
 				print_help();
-				return 0;
+				res = 0;
 		}
 	}
 
-	if(res != -1)
+	if(res < 0)
 	{
 
 		if(ifile == NULL)
@@ -93,7 +93,7 @@ int main(int argc, char **argv)
 		}
 	}
 
-	if(res > 0 && logfile)
+	if(res >= 0 && logfile)
 	{
 		fprintf(logfile, "login = xvokra00\n");
 		fprintf(logfile, "uncodedSize = %d\n", ahed.uncodedSize);
