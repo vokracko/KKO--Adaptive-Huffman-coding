@@ -9,5 +9,5 @@ debug:
 clean:
 	rm -rf ahed *.zip
 
-pack:
-	zip kko.proj1.xvokra00.zip ahed.* main.* Makefile  
+pack: clean
+	cd .. ; zip -r kko.proj1.xvokra00.zip kko.proj1.xvokra00 --exclude *.git*
