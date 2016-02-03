@@ -25,19 +25,31 @@ typedef struct{
 	int64_t codedSize;
 } tAHED;
 
-typedef struct t_node
+typedef struct tree_node
 {
-	int32_t symbol;
-	uint32_t frequency;
-	t_node * left;
-	t_node * right;
-} t_node;
+	tree_node * left;
+	tree_node * right;
+	tree_node * parent;
+	uint32_t weight;
+} tree_node;
+
+typedef struct t_buffer
+{ 
+	char buff;
+	uint8_t pos;
+	uint32_t counter;
+} t_buffer;
+
+#define SYMBOL_COUNT 257 // 256 + delimiter
+#define DELIMITER (SYMBOL_COUNT-1)
 
 #define SHIFT_LEFT(item) item <<= 1
 #define GET_MSB(item) item & 0x70
 
 #define SHIFT_RIGHT(item) item >>= 1
 #define SET_MSB(item, bit) item |= bit
+
+#define SET_BIT(item, bit, pos) item >>= 1 ; item |= bit << 7
 
 
 /* Nazev:

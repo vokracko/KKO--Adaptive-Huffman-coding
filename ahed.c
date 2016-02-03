@@ -7,31 +7,97 @@
 
 #include "ahed.h"
 
-t_node * create_node(int32_t symbol, t_node ** pointer)
+void destroy_tree(tree_node * symbol_tree)
 {
-	t_node * new = malloc(sizeof(t_node));
+	if(symbol_tree == NULL)
+		return;
 
-	if(new == NULL)
-		return NULL;
+	destroy_tree(symbol_tree->left);
+	destroy_tree(symbol_tree->right);
 
-	if(pointer != NULL)
-		*pointer = new;
-
-	new->symbol = symbol;
-	new->frequency = 0;
-
-	return new;
+	free(symbol_tree);
 }
 
-void free_tree(t_node * root_node)
+bool construct_tree(tree_node ** symbol_tree, tree_node ** symbol_array)
 {
-	if(root_node == NULL) return;
+	tree_node * node = *symbol_tree = malloc(sizeof(tree_node) * 2 * SYMBOL_COUNT);
 
-	free_tree(root_node->left);
-	free_tree(root_node->right);
+	if(symbol_tree == NULL)
+	{
+		destroy_tree(*symbol_tree);
+		return false;
+	}
 
-	free(root_node);
+	node->parent = NULL;
+
+	// -1 last node does not have children
+	for(int i = 0; i < SYMBOL_COUNT - 1; ++i)
+	{
+		node->left = node + sizeof(tree_node);
+		node->right = node + 2 * sizeof(tree_node);
+		node->weight = 0;
+
+		symbol_array[i] = node->right;
+		node->right->weight = 0;
+		node->right->parent = node;
+		node->right->left = NULL;
+		node->right->right = NULL;
+		
+		node->left->parent = node;
+		node = node->left;
+	}
+
+	// DELIMITER is last symbol
+	symbol_array[DELIMITER] = node;
+	node->weight = 0;
+	node->left = NULL;
+	node->right = NULL;
+	return true;
 }
+
+// adapt tree structure if needed
+void adapt_tree(tree_node * parent)
+{
+	tree_node * tmp;
+
+	while(parent != NULL)
+	{
+		// swap left for right
+		if(parent->left->weight > parent->right->weight)
+		{
+			tmp = parent->left;
+			parent->left = parent->right;
+			parent->right = tmp;
+		}
+
+		parent->weight += 1; // left + right is current weight + 1
+		parent = parent->parent;
+	}
+}
+
+// construct symbol code and print byte if needed
+void encode_symbol(FILE * outputFile, tree_node * node, t_buffer buffer)
+{
+	bool bit;
+
+	while(node->parent != NULL)
+	{
+		bit = node == node->parent->right;
+		SET_BIT(buffer.buff, bit, buffer.pos);
+		buffer.pos++;
+
+		if(buffer.pos == 8)
+		{
+			fprintf(outputFile, "%c", buffer.buff);
+			buffer.pos = 0;
+			buffer.counter++;
+		}
+
+		node = node->parent;
+	}
+}
+	
+
 
 /* Nazev:
  *   AHEDEncoding
@@ -49,23 +115,38 @@ int AHEDEncoding(tAHED *ahed, FILE *inputFile, FILE *outputFile)
 {
 	ahed->codedSize = 0;
 	ahed->uncodedSize = 0;
-
-	t_node * root_node = create_node(-1, NULL);
 	int16_t c;
+	t_buffer code_buffer;
+
+	code_buffer.pos = 0;
+	code_buffer.counter = 0;
+
+	tree_node * symbol_array[SYMBOL_COUNT];
+	tree_node * symbol_tree = NULL;
+
+	if(!construct_tree(&symbol_tree, symbol_array))
+		return AHEDFail;
 
 	while((c = fgetc(inputFile)) != EOF)
 	{
-		if(ahed->uncodedSize == 0) // set first character plain
+		if(symbol_array[c]->weight == 0)
 		{
-			root_node->symbol = c;
-		    root_node->frequency++;
-			fprintf("%c", c);
+			if(ahed->uncodedSize != 0)
+				encode_symbol(outputFile, symbol_array[DELIMITER], code_buffer);
+			else
+				fprintf(outputFile, "%c", c); 
+
+			symbol_array[c]->weight++;
 		}
 
 		ahed->uncodedSize++;
+		adapt_tree(symbol_array[c]->parent);
 	}
 
-	free_tree(root_node);
+	//TODO zakodovat EOF
+	destroy_tree(symbol_tree);
+
+	ahed->codedSize = code_buffer.counter;
 
 	return AHEDOK;
 }
@@ -88,9 +169,6 @@ int AHEDDecoding(tAHED *ahed, FILE *inputFile, FILE *outputFile)
 	ahed->codedSize = 0;
 	ahed->uncodedSize = 0;
 
-	t_node * root_node = create_node(-1, NULL);
-
-	t_node * node = root_node;
 	int16_t c;
 	bool bit;
 
