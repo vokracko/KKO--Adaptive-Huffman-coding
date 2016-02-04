@@ -30,8 +30,8 @@ bool construct_tree(tree_node ** symbol_tree, tree_node ** symbol_array)
 	// -1 last node does not have children
 	for(int i = 0; i < SYMBOL_COUNT - 1; ++i)
 	{
-		node->left = node + 1;
-		node->right = node + 2;
+		node->left = node + 2;
+		node->right = node + 1;
 		node->weight = 0;
 		node->symbol = ~0; // to difirentiate between symbol and path node
 
@@ -162,6 +162,8 @@ int AHEDEncoding(tAHED *ahed, FILE *inputFile, FILE *outputFile)
 
 			symbol_array[c]->weight++;
 		}
+		else
+			encode_symbol(outputFile, symbol_array[c], &code_buffer);
 
 		ahed->uncodedSize++;
 		adapt_tree(symbol_array[c]->parent);

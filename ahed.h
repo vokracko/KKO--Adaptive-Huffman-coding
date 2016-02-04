@@ -47,6 +47,7 @@ typedef struct t_buffer
 
 #define SHIFT_LEFT(item) item <<= 1
 #define GET_MSB(item) item >> 7
+#define GET_BIT(item, pos) (item >> (7 - pos)) & 1
 #define SET_BIT(item, bit, pos) item &= 0 << (7 - pos) ; item |= (bit << (7 - pos))
 
 
