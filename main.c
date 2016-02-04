@@ -29,11 +29,10 @@ int open_file(FILE ** file, const char * mode, const char * path)
 {
 	*file = fopen(path, mode);
 
-	if(*file < 0)
-		return 0;
+	if(*file == NULL)
+		return AHEDFail;
 
-	return 1;
-
+	return AHEDOK;
 }
 
 
@@ -45,20 +44,23 @@ int main(int argc, char **argv)
 	FILE * logfile = NULL;
 	tAHED ahed;
 	char c;
-	int res = 0;
+	int res = AHEDOK;
 
 	while((c = getopt(argc, argv, "i:o:l:cxh")) != -1)
 	{
 		switch(c) 
 		{
 			case 'i':
-				open_file(&ifile, "r", optarg) || printf("Failed to open %s\n", optarg), res -1;
+				if(open_file(&ifile, "r", optarg) == AHEDFail)
+					printf("Failed to open %s\n", optarg), res = AHEDFail;
 				break;
 			case 'o':
-				open_file(&ofile, "w+", optarg) || printf("Failed to open %s\n", optarg), res -1;
+				if(open_file(&ofile, "w+", optarg) == AHEDFail)
+					printf("Failed to open %s\n", optarg), res = AHEDFail;
 				break;
 			case 'l':
-				open_file(&logfile, "w+", optarg) || printf("Failed to open %s\n", optarg), res -1;
+				if(open_file(&logfile, "w+", optarg) == AHEDFail)
+					printf("Failed to open %s\n", optarg), res = AHEDFail;
 				break;
 			case 'c':
 				f = AHEDEncoding;
@@ -68,11 +70,11 @@ int main(int argc, char **argv)
 				break;
 			case 'h':
 				print_help();
-				res = 0;
+			     goto END;
 		}
 	}
 
-	if(res < 0)
+	if(res == AHEDOK)
 	{
 
 		if(ifile == NULL)
@@ -85,7 +87,7 @@ int main(int argc, char **argv)
 		{
 			puts("No mode specified");
 			print_help();
-			res = -1;
+			res = AHEDFail;
 		}
 		else
 		{
@@ -93,16 +95,20 @@ int main(int argc, char **argv)
 		}
 	}
 
-	if(res >= 0 && logfile)
+	if(res == AHEDOK && logfile)
 	{
 		fprintf(logfile, "login = xvokra00\n");
-		fprintf(logfile, "uncodedSize = %d\n", ahed.uncodedSize);
-		fprintf(logfile, "codedSize = %d\n", ahed.codedSize);
+		fprintf(logfile, "uncodedSize = %ld\n", ahed.uncodedSize);
+		fprintf(logfile, "codedSize = %ld\n", ahed.codedSize);
 	}
 
-	fclose(ifile);
-	fclose(ofile);
-	fclose(logfile);
+END:
+	if(ifile != NULL)
+		fclose(ifile);
+	if(ofile != NULL)
+		fclose(ofile);
+	if(logfile != NULL)
+		fclose(logfile);
 
 	return res * -1;
 }
