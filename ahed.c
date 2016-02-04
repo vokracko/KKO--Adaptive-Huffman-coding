@@ -36,13 +36,17 @@ bool construct_tree(tree_node ** symbol_tree, tree_node ** symbol_array)
 		node->left = node + sizeof(tree_node);
 		node->right = node + 2 * sizeof(tree_node);
 		node->weight = 0;
+		node->symbol = ~0; // to difirentiate between symbol and path node
 
+		//right child is symbol
 		symbol_array[i] = node->right;
+		node->right->symbol = i;
 		node->right->weight = 0;
 		node->right->parent = node;
 		node->right->left = NULL;
 		node->right->right = NULL;
 		
+		//left is path node
 		node->left->parent = node;
 		node = node->left;
 	}
@@ -50,6 +54,7 @@ bool construct_tree(tree_node ** symbol_tree, tree_node ** symbol_array)
 	// DELIMITER is last symbol
 	symbol_array[DELIMITER] = node;
 	node->weight = 0;
+	node->symbol = DELIMITER;
 	node->left = NULL;
 	node->right = NULL;
 	return true;

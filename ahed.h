@@ -13,6 +13,7 @@
 #include <unistd.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include <inttypes.h>
 
 #define AHEDOK 0
 #define AHEDFail -1
@@ -27,17 +28,18 @@ typedef struct{
 
 typedef struct tree_node
 {
-	tree_node * left;
-	tree_node * right;
-	tree_node * parent;
-	uint32_t weight;
+	struct tree_node * left;
+	struct tree_node * right;
+	struct tree_node * parent;
+	uint64_t weight;
+	uint16_t symbol;
 } tree_node;
 
 typedef struct t_buffer
 { 
 	char buff;
 	uint8_t pos;
-	uint32_t counter;
+	uint64_t counter;
 } t_buffer;
 
 #define SYMBOL_COUNT 257 // 256 + delimiter
