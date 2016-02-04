@@ -82,10 +82,24 @@ void adapt_tree(tree_node * parent)
 void encode_symbol(FILE * outputFile, tree_node * node, t_buffer  * buffer)
 {
 	bool bit;
+	char code = 0;
+	int code_pos = 0;
 
+	// save code in inverted order
 	while(node->parent != NULL)
 	{
 		bit = node == node->parent->right;
+		SET_BIT(code, bit, code_pos);
+		code_pos++;
+
+		node = node->parent;
+	}
+	
+	// reverse code to correct order and write it out
+	while(code_pos > 0)
+	{
+		code_pos--;
+		bit = GET_BIT(code, code_pos);
 		SET_BIT(buffer->buff, bit, buffer->pos);
 		buffer->pos++;
 
@@ -95,8 +109,6 @@ void encode_symbol(FILE * outputFile, tree_node * node, t_buffer  * buffer)
 			buffer->pos = 0;
 			buffer->counter++;
 		}
-
-		node = node->parent;
 	}
 }
 
@@ -233,7 +245,6 @@ int AHEDDecoding(tAHED *ahed, FILE *inputFile, FILE *outputFile)
 				{
 					fprintf(outputFile, "%c", char_buffer.buff);
 					symbol_array[char_buffer.buff]->weight++;
-					printf("prisel char %c\n", char_buffer.buff);
 					adapt_tree(symbol_tree);
 					char_buffer.pos = 0;
 					delimiter = false;
