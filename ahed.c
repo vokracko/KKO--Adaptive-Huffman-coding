@@ -225,22 +225,40 @@ int AHEDDecoding(tAHED *ahed, FILE *inputFile, FILE *outputFile)
 			bit = GET_MSB(c);
 			SHIFT_LEFT(c);
 
+			if(delimiter == true)
+			{
+				SET_BIT(char_buffer.buff, bit, char_buffer.pos);
+				char_buffer.pos++;
+
+				if(char_buffer.pos == 8)
+				{
+					fprintf(outputFile, "%c", char_buffer.buff);
+					char_buffer.pos = 0;
+					delimiter = false;
+					ahed->uncodedSize++;
+				}
+
+				continue;
+			}
+
 			node = bit == 1 ? node->right : node->left;
 
-			if(node->symbol >= 0)
+			if(node->symbol == DELIMITER)
+				delimiter = true;
+			else if(node->symbol < DELIMITER)
 			{
 				ahed->uncodedSize++;
 				fprintf(outputFile, "%c", node->symbol);
-				node = root_node;
+				node = symbol_tree;
 			}
 		}
 
 		ahed->codedSize++;
 	}
 
-	free_tree(root_node);
-	// should stop at leaf node, othwerwise error
-	return node == root_node ? AHEDOK : AHEDFail;
+	destroy_tree(symbol_tree);
+	// delimiter was used as EOF
+	return delimiter == true ? AHEDOK : AHEDFail;
 }
 
 
