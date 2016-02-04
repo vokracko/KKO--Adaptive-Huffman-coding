@@ -157,9 +157,8 @@ int AHEDEncoding(tAHED *ahed, FILE *inputFile, FILE *outputFile)
 		{
 			if(ahed->uncodedSize != 0)
 				encode_symbol(outputFile, symbol_array[DELIMITER], &code_buffer);
-			else
-				plain_symbol(outputFile, c, &code_buffer);
-
+			
+			plain_symbol(outputFile, c, &code_buffer);
 			symbol_array[c]->weight++;
 		}
 		else
