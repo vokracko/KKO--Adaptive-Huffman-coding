@@ -46,12 +46,8 @@ typedef struct t_buffer
 #define DELIMITER (SYMBOL_COUNT-1)
 
 #define SHIFT_LEFT(item) item <<= 1
-#define GET_MSB(item) item & 0x70
-
-#define SHIFT_RIGHT(item) item >>= 1
-#define SET_MSB(item, bit) item |= bit
-
-#define SET_BIT(item, bit, pos) item >>= 1 ; item |= bit << 7
+#define GET_MSB(item) item >> 7
+#define SET_BIT(item, bit, pos) item &= 0 << (7 - pos) ; item |= (bit << (7 - pos))
 
 
 /* Nazev:
