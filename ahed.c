@@ -79,28 +79,28 @@ void adapt_tree(tree_node * parent)
 }
 
 // construct symbol code and print byte if needed
-void encode_symbol(FILE * outputFile, tree_node * node, t_buffer buffer)
+void encode_symbol(FILE * outputFile, tree_node * node, t_buffer  * buffer)
 {
 	bool bit;
 
 	while(node->parent != NULL)
 	{
 		bit = node == node->parent->right;
-		SET_BIT(buffer.buff, bit, buffer.pos);
-		buffer.pos++;
+		SET_BIT(buffer->buff, bit, buffer->pos);
+		buffer->pos++;
 
-		if(buffer.pos == 8)
+		if(buffer->pos == 8)
 		{
-			fprintf(outputFile, "%c", buffer.buff);
-			buffer.pos = 0;
-			buffer.counter++;
+			fprintf(outputFile, "%c", buffer->buff);
+			buffer->pos = 0;
+			buffer->counter++;
 		}
 
 		node = node->parent;
 	}
 }
 
-void plain_symbol(FILE * outputFile, char c, t_buffer buffer)
+void plain_symbol(FILE * outputFile, char c, t_buffer * buffer)
 {
 	bool bit;
 
@@ -108,14 +108,14 @@ void plain_symbol(FILE * outputFile, char c, t_buffer buffer)
 	{
 		bit = GET_MSB(c);
 		SHIFT_LEFT(c);
-		SET_BIT(buffer.buff, bit, buffer.pos);
-		buffer.pos++;
+		SET_BIT(buffer->buff, bit, buffer->pos);
+		buffer->pos++;
 
-		if(buffer.pos == 8)
+		if(buffer->pos == 8)
 		{
-			fprintf(outputFile, "%c", buffer.buff);
-			buffer.pos = 0;
-			buffer.counter++;
+			fprintf(outputFile, "%c", buffer->buff);
+			buffer->pos = 0;
+			buffer->counter++;
 		}
 	}
 }
@@ -156,9 +156,9 @@ int AHEDEncoding(tAHED *ahed, FILE *inputFile, FILE *outputFile)
 		if(symbol_array[c]->weight == 0)
 		{
 			if(ahed->uncodedSize != 0)
-				encode_symbol(outputFile, symbol_array[DELIMITER], code_buffer);
+				encode_symbol(outputFile, symbol_array[DELIMITER], &code_buffer);
 			else
-				plain_symbol(outputFile, c, code_buffer);
+				plain_symbol(outputFile, c, &code_buffer);
 
 			symbol_array[c]->weight++;
 		}
@@ -168,7 +168,7 @@ int AHEDEncoding(tAHED *ahed, FILE *inputFile, FILE *outputFile)
 	}
 
 	// delimiter is used as EOF in this case
-	encode_symbol(outputFile, symbol_array[DELIMITER], code_buffer);
+	encode_symbol(outputFile, symbol_array[DELIMITER], &code_buffer);
 
 	// print delimiter as EOF + garbage if wasnt printed in encode_symbol
 	if(code_buffer.pos != 0)
@@ -231,6 +231,9 @@ int AHEDDecoding(tAHED *ahed, FILE *inputFile, FILE *outputFile)
 				if(char_buffer.pos == 8)
 				{
 					fprintf(outputFile, "%c", char_buffer.buff);
+					symbol_array[char_buffer.buff]->weight++;
+					printf("prisel char %c\n", char_buffer.buff);
+					adapt_tree(symbol_tree);
 					char_buffer.pos = 0;
 					delimiter = false;
 					ahed->uncodedSize++;
