@@ -101,6 +101,26 @@ void encode_symbol(FILE * outputFile, tree_node * node, t_buffer buffer)
 		node = node->parent;
 	}
 }
+
+void plain_symbol(FILE * outputFile, char c, t_buffer buffer)
+{
+	bool bit;
+
+	for(int i = 0; i < 8; ++i)
+	{
+		bit = GET_MSB(c);
+		SHIFT_LEFT(c);
+		SET_BIT(buffer.buff, bit, buffer.pos);
+		buffer.pos++;
+
+		if(buffer.pos == 8)
+		{
+			fprintf(outputFile, "%c", buffer.buff);
+			buffer.pos = 0;
+			buffer.counter++;
+		}
+	}
+}
 	
 
 
@@ -125,6 +145,7 @@ int AHEDEncoding(tAHED *ahed, FILE *inputFile, FILE *outputFile)
 
 	code_buffer.pos = 0;
 	code_buffer.counter = 0;
+	code_buffer.buff = 0;
 
 	tree_node * symbol_array[SYMBOL_COUNT];
 	tree_node * symbol_tree = NULL;
@@ -139,7 +160,7 @@ int AHEDEncoding(tAHED *ahed, FILE *inputFile, FILE *outputFile)
 			if(ahed->uncodedSize != 0)
 				encode_symbol(outputFile, symbol_array[DELIMITER], code_buffer);
 			else
-				fprintf(outputFile, "%c", c); 
+				plain_symbol(outputFile, c, code_buffer);
 
 			symbol_array[c]->weight++;
 		}
@@ -148,7 +169,13 @@ int AHEDEncoding(tAHED *ahed, FILE *inputFile, FILE *outputFile)
 		adapt_tree(symbol_array[c]->parent);
 	}
 
-	//TODO zakodovat EOF
+	// delimiter is used as EOF in this case
+	encode_symbol(outputFile, symbol_array[DELIMITER], code_buffer);
+
+	// print delimiter as EOF + garbage if wasnt printed in encode_symbol
+	if(code_buffer.pos != 0)
+		fprintf(outputFile, "%c", code_buffer.buff);
+
 	destroy_tree(symbol_tree);
 
 	ahed->codedSize = code_buffer.counter;
@@ -170,12 +197,25 @@ int AHEDEncoding(tAHED *ahed, FILE *inputFile, FILE *outputFile)
  */
 int AHEDDecoding(tAHED *ahed, FILE *inputFile, FILE *outputFile)
 {
-
 	ahed->codedSize = 0;
 	ahed->uncodedSize = 0;
-
 	int16_t c;
+	t_buffer char_buffer;
+
+	char_buffer.pos = 0;
+	char_buffer.counter = 0;
+	char_buffer.buff = 0;
+
+	tree_node * symbol_array[SYMBOL_COUNT];
+	tree_node * symbol_tree = NULL;
+
 	bool bit;
+	bool delimiter = true;
+
+	if(!construct_tree(&symbol_tree, symbol_array))
+		return AHEDFail;
+
+	tree_node * node = symbol_tree;
 
 	while((c = fgetc(inputFile)) != EOF)
 	{
