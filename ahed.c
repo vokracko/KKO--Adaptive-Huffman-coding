@@ -12,9 +12,6 @@ void destroy_tree(tree_node * symbol_tree)
 	if(symbol_tree == NULL)
 		return;
 
-	destroy_tree(symbol_tree->left);
-	destroy_tree(symbol_tree->right);
-
 	free(symbol_tree);
 }
 
@@ -33,8 +30,8 @@ bool construct_tree(tree_node ** symbol_tree, tree_node ** symbol_array)
 	// -1 last node does not have children
 	for(int i = 0; i < SYMBOL_COUNT - 1; ++i)
 	{
-		node->left = node + sizeof(tree_node);
-		node->right = node + 2 * sizeof(tree_node);
+		node->left = node + 1;
+		node->right = node + 2;
 		node->weight = 0;
 		node->symbol = ~0; // to difirentiate between symbol and path node
 
@@ -49,6 +46,7 @@ bool construct_tree(tree_node ** symbol_tree, tree_node ** symbol_array)
 		//left is path node
 		node->left->parent = node;
 		node = node->left;
+
 	}
 
 	// DELIMITER is last symbol
