@@ -94,7 +94,7 @@ void encode_symbol(FILE * outputFile, tree_node * node, t_buffer  * buffer)
 
 		node = node->parent;
 	}
-	
+
 	// reverse code to correct order and write it out
 	while(code_pos > 0)
 	{
@@ -106,6 +106,7 @@ void encode_symbol(FILE * outputFile, tree_node * node, t_buffer  * buffer)
 		if(buffer->pos == 8)
 		{
 			fprintf(outputFile, "%c", buffer->buff);
+			puts("print");
 			buffer->pos = 0;
 			buffer->counter++;
 		}
@@ -165,15 +166,16 @@ int AHEDEncoding(tAHED *ahed, FILE *inputFile, FILE *outputFile)
 
 	while((c = fgetc(inputFile)) != EOF)
 	{
-		if(symbol_array[c]->weight == 0)
+		if(symbol_array[c]->weight == 0) // new symbol
 		{
-			if(ahed->uncodedSize != 0)
+			if(ahed->uncodedSize != 0) // first delimiter
 				encode_symbol(outputFile, symbol_array[DELIMITER], &code_buffer);
 			
+			// then plain symbol
 			plain_symbol(outputFile, c, &code_buffer);
 			symbol_array[c]->weight++;
 		}
-		else
+		else // symbol already has code
 			encode_symbol(outputFile, symbol_array[c], &code_buffer);
 
 		ahed->uncodedSize++;
