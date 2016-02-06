@@ -44,6 +44,7 @@ typedef struct t_buffer
 
 #define SYMBOL_COUNT 257 // 256 + delimiter
 #define DELIMITER (SYMBOL_COUNT-1)
+#define NOT_SYMBOL SYMBOL_COUNT
 
 #define SHIFT_LEFT(item) item <<= 1
 #define GET_MSB(item) item >> 7

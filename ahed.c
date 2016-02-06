@@ -12,49 +12,56 @@ void destroy_tree(tree_node * symbol_tree)
 	if(symbol_tree == NULL)
 		return;
 
+	destroy_tree(symbol_tree->left);
+	destroy_tree(symbol_tree->right);
+
 	free(symbol_tree);
 }
 
-bool construct_tree(tree_node ** symbol_tree, tree_node ** symbol_array)
+bool construct_tree(tree_node ** tree, tree_node * symbol_array[])
 {
-	tree_node * node = *symbol_tree = malloc(sizeof(tree_node) * 2 * SYMBOL_COUNT);
+	*tree = malloc(sizeof(tree_node));
 
-	if(symbol_tree == NULL)
+	if(*tree == NULL)
+		return false;
+
+	(*tree)->weight = 0;
+	(*tree)->symbol = DELIMITER;
+	(*tree)->left = (*tree)->right = (*tree)->parent = NULL;
+	symbol_array[DELIMITER] = *tree;
+
+	return true;
+}
+
+
+bool construct_subtree(tree_node * symbol_array[], uint16_t symbol)
+{
+	tree_node * delimiter_node = symbol_array[DELIMITER]; // create subtree in delimiter node;
+	tree_node * left = malloc(sizeof(tree_node)); 
+	tree_node * right = malloc(sizeof(tree_node));
+
+	if(left == NULL || right == NULL)
 	{
-		destroy_tree(*symbol_tree);
+		free(left);
+		free(right);
 		return false;
 	}
 
-	node->parent = NULL;
+	delimiter_node->left = left;
+	delimiter_node->right = right;
+	delimiter_node->symbol = NOT_SYMBOL;
 
-	// -1 last node does not have children
-	for(int i = 0; i < SYMBOL_COUNT - 1; ++i)
-	{
-		node->left = node + 2;
-		node->right = node + 1;
-		node->weight = 0;
-		node->symbol = ~0; // to difirentiate between symbol and path node
+	left->parent = right->parent = delimiter_node;
+	left->left = right->left = right->right = left->right = NULL;
+	left->symbol = DELIMITER;
+	left->weight = 0;
 
-		//right child is symbol
-		symbol_array[i] = node->right;
-		node->right->symbol = i;
-		node->right->weight = 0;
-		node->right->parent = node;
-		node->right->left = NULL;
-		node->right->right = NULL;
-		
-		//left is path node
-		node->left->parent = node;
-		node = node->left;
+	right->symbol = symbol;
+	right->weight = 1;
 
-	}
+	symbol_array[DELIMITER] = left;
+	symbol_array[symbol] = right;
 
-	// DELIMITER is last symbol
-	symbol_array[DELIMITER] = node;
-	node->weight = 0;
-	node->symbol = DELIMITER;
-	node->left = NULL;
-	node->right = NULL;
 	return true;
 }
 
@@ -106,7 +113,6 @@ void encode_symbol(FILE * outputFile, tree_node * node, t_buffer  * buffer)
 		if(buffer->pos == 8)
 		{
 			fprintf(outputFile, "%c", buffer->buff);
-			puts("print");
 			buffer->pos = 0;
 			buffer->counter++;
 		}
@@ -158,7 +164,7 @@ int AHEDEncoding(tAHED *ahed, FILE *inputFile, FILE *outputFile)
 	code_buffer.counter = 0;
 	code_buffer.buff = 0;
 
-	tree_node * symbol_array[SYMBOL_COUNT];
+	tree_node * symbol_array[SYMBOL_COUNT] = {NULL};
 	tree_node * symbol_tree = NULL;
 
 	if(!construct_tree(&symbol_tree, symbol_array))
@@ -166,8 +172,14 @@ int AHEDEncoding(tAHED *ahed, FILE *inputFile, FILE *outputFile)
 
 	while((c = fgetc(inputFile)) != EOF)
 	{
-		if(symbol_array[c]->weight == 0) // new symbol
+		if(symbol_array[c] == NULL) // new symbol
 		{
+			if(!construct_subtree(symbol_array, c))
+			{
+				destroy_tree(symbol_tree);
+				return AHEDFail;
+			}
+
 			if(ahed->uncodedSize != 0) // first delimiter
 				encode_symbol(outputFile, symbol_array[DELIMITER], &code_buffer);
 			
