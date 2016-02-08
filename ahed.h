@@ -33,6 +33,7 @@ typedef struct tree_node
 	struct tree_node * parent;
 	uint64_t weight;
 	uint16_t symbol;
+	uint16_t number;
 } tree_node;
 
 typedef struct t_buffer

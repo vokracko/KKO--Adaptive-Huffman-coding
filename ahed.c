@@ -28,6 +28,7 @@ bool construct_tree(tree_node ** tree, tree_node * symbol_array[])
 	(*tree)->weight = 0;
 	(*tree)->symbol = DELIMITER;
 	(*tree)->left = (*tree)->right = (*tree)->parent = NULL;
+	(*tree)->number = 0;
 	symbol_array[DELIMITER] = *tree;
 
 	return true;
@@ -55,9 +56,11 @@ bool construct_subtree(tree_node * symbol_array[], uint16_t symbol)
 	left->left = right->left = right->right = left->right = NULL;
 	left->symbol = DELIMITER;
 	left->weight = 0;
+	left->number = delimiter_node->number + 2;
 
 	right->symbol = symbol;
 	right->weight = 1;
+	right->number = delimiter_node->number + 1;
 
 	symbol_array[DELIMITER] = left;
 	symbol_array[symbol] = right;
