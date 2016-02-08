@@ -57,7 +57,7 @@ bool construct_subtree(tree_node * symbol_array[], uint16_t symbol)
 	left->weight = 0;
 
 	right->symbol = symbol;
-	right->weight = 1;
+	right->weight = 0;
 
 	symbol_array[DELIMITER] = left;
 	symbol_array[symbol] = right;
@@ -114,6 +114,7 @@ void encode_symbol(FILE * outputFile, tree_node * node, t_buffer  * buffer)
 		{
 			fprintf(outputFile, "%c", buffer->buff);
 			buffer->pos = 0;
+			buffer->buff = 0;
 			buffer->counter++;
 		}
 	}
@@ -125,16 +126,17 @@ void plain_symbol(FILE * outputFile, char c, t_buffer * buffer)
 
 	for(int i = 0; i < 8; ++i)
 	{
-		bit = GET_MSB(c);
-		SHIFT_LEFT(c);
+		bit = GET_BIT(c, i);
 		SET_BIT(buffer->buff, bit, buffer->pos);
 		buffer->pos++;
+
 
 		if(buffer->pos == 8)
 		{
 			fprintf(outputFile, "%c", buffer->buff);
 			buffer->pos = 0;
 			buffer->counter++;
+			buffer->buff = 0;
 		}
 	}
 }
@@ -174,22 +176,23 @@ int AHEDEncoding(tAHED *ahed, FILE *inputFile, FILE *outputFile)
 	{
 		if(symbol_array[c] == NULL) // new symbol
 		{
-			if(!construct_subtree(symbol_array, c))
+
+			if(ahed->uncodedSize != 0) // first delimiter
+				encode_symbol(outputFile, symbol_array[DELIMITER], &code_buffer);
+			
+			if(!construct_subtree(symbol_array, c)) // insert char to tree
 			{
 				destroy_tree(symbol_tree);
 				return AHEDFail;
 			}
 
-			if(ahed->uncodedSize != 0) // first delimiter
-				encode_symbol(outputFile, symbol_array[DELIMITER], &code_buffer);
-			
 			// then plain symbol
 			plain_symbol(outputFile, c, &code_buffer);
-			symbol_array[c]->weight++;
 		}
 		else // symbol already has code
 			encode_symbol(outputFile, symbol_array[c], &code_buffer);
 
+		symbol_array[c]->weight++;
 		ahed->uncodedSize++;
 		adapt_tree(symbol_array[c]->parent);
 	}
@@ -199,7 +202,10 @@ int AHEDEncoding(tAHED *ahed, FILE *inputFile, FILE *outputFile)
 
 	// print delimiter as EOF + garbage if wasnt printed in encode_symbol
 	if(code_buffer.pos != 0)
+	{
 		fprintf(outputFile, "%c", code_buffer.buff);
+		code_buffer.counter++;
+	}
 
 	destroy_tree(symbol_tree);
 
@@ -231,24 +237,22 @@ int AHEDDecoding(tAHED *ahed, FILE *inputFile, FILE *outputFile)
 	char_buffer.counter = 0;
 	char_buffer.buff = 0;
 
-	tree_node * symbol_array[SYMBOL_COUNT];
+	tree_node * symbol_array[SYMBOL_COUNT] = {NULL};
 	tree_node * symbol_tree = NULL;
-
-	bool bit;
-	bool delimiter = true;
 
 	if(!construct_tree(&symbol_tree, symbol_array))
 		return AHEDFail;
+
+	bool bit;
+	bool delimiter = true;
 
 	tree_node * node = symbol_tree;
 
 	while((c = fgetc(inputFile)) != EOF)
 	{
-		int i = 8;
-		while(i-- > 0)
+		for(int i = 0; i < 8; ++i)
 		{
-			bit = GET_MSB(c);
-			SHIFT_LEFT(c);
+			bit = GET_BIT(c, i);
 
 			if(delimiter == true)
 			{
@@ -257,10 +261,17 @@ int AHEDDecoding(tAHED *ahed, FILE *inputFile, FILE *outputFile)
 
 				if(char_buffer.pos == 8)
 				{
+					if(!construct_subtree(symbol_array, char_buffer.buff))
+					{
+						destroy_tree(symbol_tree);
+						return AHEDFail;
+					}
+
 					fprintf(outputFile, "%c", char_buffer.buff);
 					symbol_array[char_buffer.buff]->weight++;
-					adapt_tree(symbol_tree);
+					adapt_tree(symbol_array[char_buffer.buff]->parent);
 					char_buffer.pos = 0;
+					char_buffer.buff = 0;
 					delimiter = false;
 					ahed->uncodedSize++;
 				}
@@ -269,13 +280,22 @@ int AHEDDecoding(tAHED *ahed, FILE *inputFile, FILE *outputFile)
 			}
 
 			node = bit == 1 ? node->right : node->left;
-
+			if(node == NULL)
+			{
+				destroy_tree(symbol_tree);
+				return AHEDFail;
+			}
 			if(node->symbol == DELIMITER)
+			{
 				delimiter = true;
+				node = symbol_tree;
+			}
 			else if(node->symbol < DELIMITER)
 			{
 				ahed->uncodedSize++;
 				fprintf(outputFile, "%c", node->symbol);
+				node->weight++;
+				adapt_tree(node->parent);
 				node = symbol_tree;
 			}
 		}

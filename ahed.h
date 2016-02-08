@@ -37,7 +37,7 @@ typedef struct tree_node
 
 typedef struct t_buffer
 { 
-	char buff;
+	unsigned char buff;
 	uint8_t pos;
 	uint64_t counter;
 } t_buffer;
@@ -46,10 +46,8 @@ typedef struct t_buffer
 #define DELIMITER (SYMBOL_COUNT-1)
 #define NOT_SYMBOL SYMBOL_COUNT
 
-#define SHIFT_LEFT(item) item <<= 1
-#define GET_MSB(item) item >> 7
 #define GET_BIT(item, pos) (item >> (7 - pos)) & 1
-#define SET_BIT(item, bit, pos) item &= 0 << (7 - pos) ; item |= (bit << (7 - pos))
+#define SET_BIT(item, bit, pos) item &= ~(1 << (7 - pos)) ; item |= (bit << (7 - pos))
 
 
 /* Nazev:
