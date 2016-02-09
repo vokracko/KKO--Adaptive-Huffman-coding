@@ -92,41 +92,23 @@ void adapt_tree(tree_node * symbol_array[], uint16_t c, tree_node * symbol_tree)
 		// if not in position with smallest number
 		if(smallest_node != updated && smallest_node != updated->parent)
 		{
-			// swap pointers
-			symbol_array[c] = smallest_node;
-			symbol_array[smallest_node->symbol] = updated;
+			tree_node * tmp_parent = updated->parent;
+			uint16_t tmp_number = updated->number;
 
-			// swap values
-			tree_node swap;
-			memcpy(&swap, updated, sizeof(tree_node));
-			updated->symbol = smallest_node->symbol;
-			//switch pointers in tree
-			updated->left = smallest_node->left;
-			updated->right = smallest_node->right;
+			if(updated->parent->right == updated)
+				updated->parent->right = smallest_node;
+			else 
+				updated->parent->left = smallest_node;
+
+			if(smallest_node->parent->right == smallest_node)
+				smallest_node->parent->right = updated;
+			else
+				smallest_node->parent->left = updated;
+
 			updated->parent = smallest_node->parent;
-			updated->left->parent = updated;
-			updated->right->parent = updated;
-
-			// update parent pointer depending if node was in left or right subtree
-			if(updated->parent->left == smallest_node)
-				updated->parent->left = updated;
-			else
-				updated->parent->right = updated;
-
-			smallest_node->symbol = swap.symbol;
-			smallest_node->left = swap.left;
-			smallest_node->right = swap.right;
-			smallest_node->parent = swap.parent;
-
-			swap.left->parent = smallest_node;
-			swap.right->parent = smallest_node;
-
-			if(swap.parent->left == updated)
-				swap.parent->left = smallest_node;
-			else
-				swap.parent->right = smallest_node;
-
-			updated = smallest_node;
+			updated->number = smallest_node->number;
+			smallest_node->parent = tmp_parent;
+			smallest_node->number = tmp_number;
 		}
 
 		updated->weight++;
