@@ -2,7 +2,13 @@
 make debug > /dev/null
 rm ../test/*.o ../test/*.i
 
-for file in `find ../test/ -name '*.tst' | sort`; do
+if [[ $# -eq 0 ]] ; then
+	files=`find ../test/ -name '*.tst' | sort`
+else
+	files="$@"
+fi
+
+for file in $files; do
 	./ahed -c -i $file -o $file.o -l $file.log
 	./ahed -x -i $file.o -o $file.i -l $file.log.o
 
