@@ -3,7 +3,7 @@
  * Datum:
  * Soubor:
  * Komentar:
- */ 
+ */
 
 #include "ahed.h"
 
@@ -38,7 +38,7 @@ bool construct_tree(tree_node ** tree, tree_node * symbol_array[])
 bool construct_subtree(tree_node * symbol_array[], uint16_t symbol)
 {
 	tree_node * delimiter_node = symbol_array[DELIMITER]; // create subtree in delimiter node;
-	tree_node * left = malloc(sizeof(tree_node)); 
+	tree_node * left = malloc(sizeof(tree_node));
 	tree_node * right = malloc(sizeof(tree_node));
 
 	if(left == NULL || right == NULL)
@@ -64,27 +64,73 @@ bool construct_subtree(tree_node * symbol_array[], uint16_t symbol)
 
 	symbol_array[DELIMITER] = left;
 	symbol_array[symbol] = right;
+	symbol_array[SYMBOL_COUNT + delimiter_node->number/2] = delimiter_node;
 
 	return true;
 }
 
 // adapt tree structure if needed
-void adapt_tree(tree_node * parent)
+void adapt_tree(tree_node * symbol_array[], uint16_t c, tree_node * symbol_tree)
 {
-	tree_node * tmp;
+	tree_node * updated = symbol_array[c];
 
-	while(parent != NULL)
+	while(updated != NULL)
 	{
-		// swap left for right
-		if(parent->left->weight > parent->right->weight)
+		tree_node * smallest_node = updated;
+
+		// find node in same block with smallest number
+		for(int i = 0; i < 2 * SYMBOL_COUNT; ++i)
 		{
-			tmp = parent->left;
-			parent->left = parent->right;
-			parent->right = tmp;
+			tree_node * current = symbol_array[i];
+			if(current != NULL && current->weight == updated->weight && current->number < smallest_node->number)
+			{
+				smallest_node = current;
+			}
 		}
 
-		parent->weight += 1; // left + right is current weight + 1
-		parent = parent->parent;
+
+		// if not in position with smallest number
+		if(smallest_node != updated && smallest_node != updated->parent)
+		{
+			// swap pointers
+			symbol_array[c] = smallest_node;
+			symbol_array[smallest_node->symbol] = updated;
+
+			// swap values
+			tree_node swap;
+			memcpy(&swap, updated, sizeof(tree_node));
+			updated->symbol = smallest_node->symbol;
+			//switch pointers in tree
+			updated->left = smallest_node->left;
+			updated->right = smallest_node->right;
+			updated->parent = smallest_node->parent;
+			updated->left->parent = updated;
+			updated->right->parent = updated;
+
+			// update parent pointer depending if node was in left or right subtree
+			if(updated->parent->left == smallest_node)
+				updated->parent->left = updated;
+			else
+				updated->parent->right = updated;
+
+			smallest_node->symbol = swap.symbol;
+			smallest_node->left = swap.left;
+			smallest_node->right = swap.right;
+			smallest_node->parent = swap.parent;
+
+			swap.left->parent = smallest_node;
+			swap.right->parent = smallest_node;
+
+			if(swap.parent->left == updated)
+				swap.parent->left = smallest_node;
+			else
+				swap.parent->right = smallest_node;
+
+			updated = smallest_node;
+		}
+
+		updated->weight++;
+		updated = updated->parent;
 	}
 }
 
@@ -143,7 +189,7 @@ void plain_symbol(FILE * outputFile, char c, t_buffer * buffer)
 		}
 	}
 }
-	
+
 
 
 /* Nazev:
@@ -154,7 +200,7 @@ void plain_symbol(FILE * outputFile, char c, t_buffer * buffer)
  *   ahed - zaznam o kodovani
  *   inputFile - vstupni soubor (nekodovany)
  *   outputFile - vystupní soubor (kodovany)
- * Navratova hodnota: 
+ * Navratova hodnota:
  *    0 - kodovani probehlo v poradku
  *    -1 - pøi kodovani nastala chyba
  */
@@ -169,7 +215,7 @@ int AHEDEncoding(tAHED *ahed, FILE *inputFile, FILE *outputFile)
 	code_buffer.counter = 0;
 	code_buffer.buff = 0;
 
-	tree_node * symbol_array[SYMBOL_COUNT] = {NULL};
+	tree_node * symbol_array[2 * SYMBOL_COUNT] = {NULL};
 	tree_node * symbol_tree = NULL;
 
 	if(!construct_tree(&symbol_tree, symbol_array))
@@ -182,7 +228,7 @@ int AHEDEncoding(tAHED *ahed, FILE *inputFile, FILE *outputFile)
 
 			if(ahed->uncodedSize != 0) // first delimiter
 				encode_symbol(outputFile, symbol_array[DELIMITER], &code_buffer);
-			
+
 			if(!construct_subtree(symbol_array, c)) // insert char to tree
 			{
 				destroy_tree(symbol_tree);
@@ -195,9 +241,8 @@ int AHEDEncoding(tAHED *ahed, FILE *inputFile, FILE *outputFile)
 		else // symbol already has code
 			encode_symbol(outputFile, symbol_array[c], &code_buffer);
 
-		symbol_array[c]->weight++;
 		ahed->uncodedSize++;
-		adapt_tree(symbol_array[c]->parent);
+		adapt_tree(symbol_array, c, symbol_tree);
 	}
 
 	// delimiter is used as EOF in this case
@@ -225,7 +270,7 @@ int AHEDEncoding(tAHED *ahed, FILE *inputFile, FILE *outputFile)
  *   ahed - zaznam o dekodovani
  *   inputFile - vstupni soubor (kodovany)
  *   outputFile - vystupní soubor (nekodovany)
- * Navratova hodnota: 
+ * Navratova hodnota:
  *    0 - dekodovani probehlo v poradku
  *    -1 - pøi dekodovani nastala chyba
  */
@@ -240,7 +285,7 @@ int AHEDDecoding(tAHED *ahed, FILE *inputFile, FILE *outputFile)
 	char_buffer.counter = 0;
 	char_buffer.buff = 0;
 
-	tree_node * symbol_array[SYMBOL_COUNT] = {NULL};
+	tree_node * symbol_array[2 * SYMBOL_COUNT] = {NULL};
 	tree_node * symbol_tree = NULL;
 
 	if(!construct_tree(&symbol_tree, symbol_array))
@@ -271,8 +316,7 @@ int AHEDDecoding(tAHED *ahed, FILE *inputFile, FILE *outputFile)
 					}
 
 					fprintf(outputFile, "%c", char_buffer.buff);
-					symbol_array[char_buffer.buff]->weight++;
-					adapt_tree(symbol_array[char_buffer.buff]->parent);
+					adapt_tree(symbol_array, char_buffer.buff, symbol_tree);
 					char_buffer.pos = 0;
 					char_buffer.buff = 0;
 					delimiter = false;
@@ -297,8 +341,7 @@ int AHEDDecoding(tAHED *ahed, FILE *inputFile, FILE *outputFile)
 			{
 				ahed->uncodedSize++;
 				fprintf(outputFile, "%c", node->symbol);
-				node->weight++;
-				adapt_tree(node->parent);
+				adapt_tree(symbol_array, node->symbol, symbol_tree);
 				node = symbol_tree;
 			}
 		}
