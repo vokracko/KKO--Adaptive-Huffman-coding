@@ -116,42 +116,43 @@ void adapt_tree(tree_node * symbol_array[], uint16_t c, tree_node * symbol_tree)
 	}
 }
 
+void flush_buffer(t_buffer * buffer)
+{
+	fprintf(buffer->outputFile, "%c", buffer->buff);
+	buffer->pos = 0;
+	buffer->buff = 0;
+	buffer->counter++;
+}
+
 // construct symbol code and print byte if needed
-void encode_symbol(FILE * outputFile, tree_node * node, t_buffer  * buffer)
+void encode_symbol(tree_node * node, t_buffer  * buffer)
 {
 	bool bit;
-	char code = 0;
+	char code[SYMBOL_COUNT / 8 + 1] = {0};
 	int code_pos = 0;
 
 	// save code in inverted order
 	while(node->parent != NULL)
 	{
 		bit = node == node->parent->right;
-		SET_BIT(code, bit, code_pos);
+		SET_BIT(code[code_pos / 8], bit, code_pos % 8);
 		code_pos++;
-
 		node = node->parent;
 	}
 
-	// reverse code to correct order and write it out
 	while(code_pos > 0)
 	{
 		code_pos--;
-		bit = GET_BIT(code, code_pos);
+		bit = GET_BIT(code[code_pos / 8], code_pos % 8);
 		SET_BIT(buffer->buff, bit, buffer->pos);
 		buffer->pos++;
 
 		if(buffer->pos == 8)
-		{
-			fprintf(outputFile, "%c", buffer->buff);
-			buffer->pos = 0;
-			buffer->buff = 0;
-			buffer->counter++;
-		}
+			flush_buffer(buffer);
 	}
 }
 
-void plain_symbol(FILE * outputFile, char c, t_buffer * buffer)
+void plain_symbol(char c, t_buffer * buffer)
 {
 	bool bit;
 
@@ -163,12 +164,7 @@ void plain_symbol(FILE * outputFile, char c, t_buffer * buffer)
 
 
 		if(buffer->pos == 8)
-		{
-			fprintf(outputFile, "%c", buffer->buff);
-			buffer->pos = 0;
-			buffer->counter++;
-			buffer->buff = 0;
-		}
+			flush_buffer(buffer);
 	}
 }
 
@@ -196,6 +192,7 @@ int AHEDEncoding(tAHED *ahed, FILE *inputFile, FILE *outputFile)
 	code_buffer.pos = 0;
 	code_buffer.counter = 0;
 	code_buffer.buff = 0;
+	code_buffer.outputFile = outputFile;
 
 	tree_node * symbol_array[2 * SYMBOL_COUNT] = {NULL};
 	tree_node * symbol_tree = NULL;
@@ -209,7 +206,7 @@ int AHEDEncoding(tAHED *ahed, FILE *inputFile, FILE *outputFile)
 		{
 
 			if(ahed->uncodedSize != 0) // first delimiter
-				encode_symbol(outputFile, symbol_array[DELIMITER], &code_buffer);
+				encode_symbol(symbol_array[DELIMITER], &code_buffer);
 
 			if(!construct_subtree(symbol_array, c)) // insert char to tree
 			{
@@ -218,17 +215,17 @@ int AHEDEncoding(tAHED *ahed, FILE *inputFile, FILE *outputFile)
 			}
 
 			// then plain symbol
-			plain_symbol(outputFile, c, &code_buffer);
+			plain_symbol(c, &code_buffer);
 		}
 		else // symbol already has code
-			encode_symbol(outputFile, symbol_array[c], &code_buffer);
+			encode_symbol(symbol_array[c], &code_buffer);
 
 		ahed->uncodedSize++;
 		adapt_tree(symbol_array, c, symbol_tree);
 	}
 
 	// delimiter is used as EOF in this case
-	encode_symbol(outputFile, symbol_array[DELIMITER], &code_buffer);
+	encode_symbol(symbol_array[DELIMITER], &code_buffer);
 
 	// print delimiter as EOF + garbage if wasnt printed in encode_symbol
 	if(code_buffer.pos != 0)
@@ -266,6 +263,7 @@ int AHEDDecoding(tAHED *ahed, FILE *inputFile, FILE *outputFile)
 	char_buffer.pos = 0;
 	char_buffer.counter = 0;
 	char_buffer.buff = 0;
+	char_buffer.outputFile = outputFile;
 
 	tree_node * symbol_array[2 * SYMBOL_COUNT] = {NULL};
 	tree_node * symbol_tree = NULL;
@@ -297,10 +295,8 @@ int AHEDDecoding(tAHED *ahed, FILE *inputFile, FILE *outputFile)
 						return AHEDFail;
 					}
 
-					fprintf(outputFile, "%c", char_buffer.buff);
 					adapt_tree(symbol_array, char_buffer.buff, symbol_tree);
-					char_buffer.pos = 0;
-					char_buffer.buff = 0;
+					flush_buffer(&char_buffer);
 					delimiter = false;
 					ahed->uncodedSize++;
 				}
