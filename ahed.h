@@ -22,9 +22,9 @@
 /* Datovy typ zaznamu o (de)kodovani */
 typedef struct{
 	/* velikost nekodovaneho retezce */
-	int64_t uncodedSize;
+	uint64_t uncodedSize;
 	/* velikost kodovaneho retezce */
-	int64_t codedSize;
+	uint64_t codedSize;
 } tAHED;
 
 typedef struct tree_node
@@ -42,6 +42,7 @@ typedef struct t_buffer
 	unsigned char buff;
 	uint8_t pos;
 	uint64_t counter;
+	FILE * outputFile;
 } t_buffer;
 
 #define SYMBOL_COUNT 257 // 256 + delimiter
