@@ -1,8 +1,8 @@
 /*
- * Autor: Jmeno Prijmeni (login)
- * Datum:
- * Soubor:
- * Komentar:
+ * Autor: LukÃ¡Å¡ VokrÃ¡Äko (xvokra00)
+ * Datum: 11.2
+ * Soubor: ahed.c
+ * Komentar: Funkce pro kodovani a dekodovani adaptivniho huffmanova kodu
  */
 
 #include "ahed.h"
@@ -18,6 +18,11 @@ void destroy_tree(tree_node * symbol_tree)
 	free(symbol_tree);
 }
 
+/**
+ * \brief Construct root node for tree
+ * \param tree Where to save pointer to root
+ * \param symbol_array array of symbols, insert NYT to correct position
+*/
 bool construct_tree(tree_node ** tree, tree_node * symbol_array[])
 {
 	*tree = malloc(sizeof(tree_node));
@@ -34,7 +39,11 @@ bool construct_tree(tree_node ** tree, tree_node * symbol_array[])
 	return true;
 }
 
-
+/**
+ * \brief Construct subtree for new symbol in place of NYT and move NYT to new position
+ * \param symbol_array
+ * \param symbol
+*/
 bool construct_subtree(tree_node * symbol_array[], uint16_t symbol)
 {
 	tree_node * delimiter_node = symbol_array[DELIMITER]; // create subtree in delimiter node;
@@ -69,8 +78,12 @@ bool construct_subtree(tree_node * symbol_array[], uint16_t symbol)
 	return true;
 }
 
-// adapt tree structure if needed
-void adapt_tree(tree_node * symbol_array[], uint16_t c, tree_node * symbol_tree)
+/**
+ * \brief Adapt tree if it is not huffman anymore and increment weight of c node
+ * \param symbol_array
+ * \param c symbol received from inputFile
+*/
+void adapt_tree(tree_node * symbol_array[], uint16_t c)
 {
 	tree_node * updated = symbol_array[c];
 
@@ -97,7 +110,7 @@ void adapt_tree(tree_node * symbol_array[], uint16_t c, tree_node * symbol_tree)
 
 			if(updated->parent->right == updated)
 				updated->parent->right = smallest_node;
-			else 
+			else
 				updated->parent->left = smallest_node;
 
 			if(smallest_node->parent->right == smallest_node)
@@ -116,6 +129,10 @@ void adapt_tree(tree_node * symbol_array[], uint16_t c, tree_node * symbol_tree)
 	}
 }
 
+/**
+ * \brief Print character in buffer to output file
+ * \param buffer
+*/
 void flush_buffer(t_buffer * buffer)
 {
 	fprintf(buffer->outputFile, "%c", buffer->buff);
@@ -124,7 +141,11 @@ void flush_buffer(t_buffer * buffer)
 	buffer->counter++;
 }
 
-// construct symbol code and print byte if needed
+/**
+ * \brief Construct symbol code from tree
+ * \param node node containing received symbol
+ * \param buffer where to write the code
+*/
 void encode_symbol(tree_node * node, t_buffer  * buffer)
 {
 	bool bit;
@@ -152,6 +173,11 @@ void encode_symbol(tree_node * node, t_buffer  * buffer)
 	}
 }
 
+/**
+ * \brief Print plain symbol into the buffer
+ * \param c
+ * \param buffer
+*/
 void plain_symbol(char c, t_buffer * buffer)
 {
 	bool bit;
@@ -169,19 +195,6 @@ void plain_symbol(char c, t_buffer * buffer)
 }
 
 
-
-/* Nazev:
- *   AHEDEncoding
- * Cinnost:
- *   Funkce koduje vstupni soubor do vystupniho souboru a porizuje zaznam o kodovani.
- * Parametry:
- *   ahed - zaznam o kodovani
- *   inputFile - vstupni soubor (nekodovany)
- *   outputFile - vystupní soubor (kodovany)
- * Navratova hodnota:
- *    0 - kodovani probehlo v poradku
- *    -1 - pøi kodovani nastala chyba
- */
 int AHEDEncoding(tAHED *ahed, FILE *inputFile, FILE *outputFile)
 {
 	ahed->codedSize = 0;
@@ -204,8 +217,7 @@ int AHEDEncoding(tAHED *ahed, FILE *inputFile, FILE *outputFile)
 	{
 		if(symbol_array[c] == NULL) // new symbol
 		{
-
-			if(ahed->uncodedSize != 0) // first delimiter
+			if(ahed->uncodedSize != 0) // not first symbol, write out DELIMITER
 				encode_symbol(symbol_array[DELIMITER], &code_buffer);
 
 			if(!construct_subtree(symbol_array, c)) // insert char to tree
@@ -221,7 +233,7 @@ int AHEDEncoding(tAHED *ahed, FILE *inputFile, FILE *outputFile)
 			encode_symbol(symbol_array[c], &code_buffer);
 
 		ahed->uncodedSize++;
-		adapt_tree(symbol_array, c, symbol_tree);
+		adapt_tree(symbol_array, c);
 	}
 
 	// delimiter is used as EOF in this case
@@ -241,18 +253,6 @@ int AHEDEncoding(tAHED *ahed, FILE *inputFile, FILE *outputFile)
 	return AHEDOK;
 }
 
-/* Nazev:
- *   AHEDDecoding
- * Cinnost:
- *   Funkce dekoduje vstupni soubor do vystupniho souboru a porizuje zaznam o dekodovani.
- * Parametry:
- *   ahed - zaznam o dekodovani
- *   inputFile - vstupni soubor (kodovany)
- *   outputFile - vystupní soubor (nekodovany)
- * Navratova hodnota:
- *    0 - dekodovani probehlo v poradku
- *    -1 - pøi dekodovani nastala chyba
- */
 int AHEDDecoding(tAHED *ahed, FILE *inputFile, FILE *outputFile)
 {
 	ahed->codedSize = 0;
@@ -278,16 +278,16 @@ int AHEDDecoding(tAHED *ahed, FILE *inputFile, FILE *outputFile)
 
 	while((c = fgetc(inputFile)) != EOF)
 	{
-		for(int i = 0; i < 8; ++i)
+		for(int i = 0; i < 8; ++i) // for every bit
 		{
 			bit = GET_BIT(c, i);
 
-			if(delimiter == true)
+			if(delimiter == true) // if previous symbol was delimiter receive plain symbol
 			{
 				SET_BIT(char_buffer.buff, bit, char_buffer.pos);
 				char_buffer.pos++;
 
-				if(char_buffer.pos == 8)
+				if(char_buffer.pos == 8) // we have whole symbol, create its node in tree
 				{
 					if(!construct_subtree(symbol_array, char_buffer.buff))
 					{
@@ -295,15 +295,16 @@ int AHEDDecoding(tAHED *ahed, FILE *inputFile, FILE *outputFile)
 						return AHEDFail;
 					}
 
-					adapt_tree(symbol_array, char_buffer.buff, symbol_tree);
+					adapt_tree(symbol_array, char_buffer.buff);
 					flush_buffer(&char_buffer);
 					delimiter = false;
 					ahed->uncodedSize++;
 				}
 
-				continue;
+				continue; // do not traverse tree
 			}
 
+			// traverse tree by bits until node with symbol, the print its symbol
 			node = bit == 1 ? node->right : node->left;
 			if(node == NULL)
 			{
@@ -319,7 +320,7 @@ int AHEDDecoding(tAHED *ahed, FILE *inputFile, FILE *outputFile)
 			{
 				ahed->uncodedSize++;
 				fprintf(outputFile, "%c", node->symbol);
-				adapt_tree(symbol_array, node->symbol, symbol_tree);
+				adapt_tree(symbol_array, node->symbol);
 				node = symbol_tree;
 			}
 		}
