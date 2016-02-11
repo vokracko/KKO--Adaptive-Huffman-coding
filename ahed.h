@@ -42,8 +42,8 @@ typedef struct t_buffer
 	FILE * outputFile;
 } t_buffer;
 
-#define SYMBOL_COUNT 257 // 256 + delimiter
-#define DELIMITER (SYMBOL_COUNT-1)
+#define SYMBOL_COUNT 257 // 256 + NYT
+#define NYT (SYMBOL_COUNT-1)
 #define NOT_SYMBOL SYMBOL_COUNT // for node who does not have symbol
 
 #define GET_BIT(item, pos) (item >> (7 - pos)) & 1

@@ -31,10 +31,10 @@ bool construct_tree(tree_node ** tree, tree_node * symbol_array[])
 		return false;
 
 	(*tree)->weight = 0;
-	(*tree)->symbol = DELIMITER;
+	(*tree)->symbol = NYT;
 	(*tree)->left = (*tree)->right = (*tree)->parent = NULL;
 	(*tree)->number = 0;
-	symbol_array[DELIMITER] = *tree;
+	symbol_array[NYT] = *tree;
 
 	return true;
 }
@@ -46,7 +46,7 @@ bool construct_tree(tree_node ** tree, tree_node * symbol_array[])
 */
 bool construct_subtree(tree_node * symbol_array[], uint16_t symbol)
 {
-	tree_node * delimiter_node = symbol_array[DELIMITER]; // create subtree in delimiter node;
+	tree_node * nyt_node = symbol_array[NYT]; // create subtree in NYT node;
 	tree_node * left = malloc(sizeof(tree_node));
 	tree_node * right = malloc(sizeof(tree_node));
 
@@ -57,23 +57,23 @@ bool construct_subtree(tree_node * symbol_array[], uint16_t symbol)
 		return false;
 	}
 
-	delimiter_node->left = left;
-	delimiter_node->right = right;
-	delimiter_node->symbol = NOT_SYMBOL;
+	nyt_node->left = left;
+	nyt_node->right = right;
+	nyt_node->symbol = NOT_SYMBOL;
 
-	left->parent = right->parent = delimiter_node;
+	left->parent = right->parent = nyt_node;
 	left->left = right->left = right->right = left->right = NULL;
-	left->symbol = DELIMITER;
+	left->symbol = NYT;
 	left->weight = 0;
-	left->number = delimiter_node->number + 2;
+	left->number = nyt_node->number + 2;
 
 	right->symbol = symbol;
 	right->weight = 0;
-	right->number = delimiter_node->number + 1;
+	right->number = nyt_node->number + 1;
 
-	symbol_array[DELIMITER] = left;
+	symbol_array[NYT] = left;
 	symbol_array[symbol] = right;
-	symbol_array[SYMBOL_COUNT + delimiter_node->number/2] = delimiter_node;
+	symbol_array[SYMBOL_COUNT + nyt_node->number/2] = nyt_node;
 
 	return true;
 }
@@ -217,8 +217,8 @@ int AHEDEncoding(tAHED *ahed, FILE *inputFile, FILE *outputFile)
 	{
 		if(symbol_array[c] == NULL) // new symbol
 		{
-			if(ahed->uncodedSize != 0) // not first symbol, write out DELIMITER
-				encode_symbol(symbol_array[DELIMITER], &code_buffer);
+			if(ahed->uncodedSize != 0) // not first symbol, write out NYT
+				encode_symbol(symbol_array[NYT], &code_buffer);
 
 			if(!construct_subtree(symbol_array, c)) // insert char to tree
 			{
@@ -236,10 +236,10 @@ int AHEDEncoding(tAHED *ahed, FILE *inputFile, FILE *outputFile)
 		adapt_tree(symbol_array, c);
 	}
 
-	// delimiter is used as EOF in this case
-	encode_symbol(symbol_array[DELIMITER], &code_buffer);
+	// NYT is used as EOF in this case
+	encode_symbol(symbol_array[NYT], &code_buffer);
 
-	// print delimiter as EOF + garbage if wasnt printed in encode_symbol
+	// print NYT as EOF + garbage if wasnt printed in encode_symbol
 	if(code_buffer.pos != 0)
 	{
 		fprintf(outputFile, "%c", code_buffer.buff);
@@ -272,7 +272,7 @@ int AHEDDecoding(tAHED *ahed, FILE *inputFile, FILE *outputFile)
 		return AHEDFail;
 
 	bool bit;
-	bool delimiter = true;
+	bool nyt = true;
 
 	tree_node * node = symbol_tree;
 
@@ -282,7 +282,7 @@ int AHEDDecoding(tAHED *ahed, FILE *inputFile, FILE *outputFile)
 		{
 			bit = GET_BIT(c, i);
 
-			if(delimiter == true) // if previous symbol was delimiter receive plain symbol
+			if(nyt == true) // if previous symbol was NYT receive plain symbol
 			{
 				SET_BIT(char_buffer.buff, bit, char_buffer.pos);
 				char_buffer.pos++;
@@ -297,7 +297,7 @@ int AHEDDecoding(tAHED *ahed, FILE *inputFile, FILE *outputFile)
 
 					adapt_tree(symbol_array, char_buffer.buff);
 					flush_buffer(&char_buffer);
-					delimiter = false;
+					nyt = false;
 					ahed->uncodedSize++;
 				}
 
@@ -311,12 +311,12 @@ int AHEDDecoding(tAHED *ahed, FILE *inputFile, FILE *outputFile)
 				destroy_tree(symbol_tree);
 				return AHEDFail;
 			}
-			if(node->symbol == DELIMITER)
+			if(node->symbol == NYT)
 			{
-				delimiter = true;
+				nyt = true;
 				node = symbol_tree;
 			}
-			else if(node->symbol < DELIMITER)
+			else if(node->symbol < NYT)
 			{
 				ahed->uncodedSize++;
 				fprintf(outputFile, "%c", node->symbol);
@@ -329,8 +329,8 @@ int AHEDDecoding(tAHED *ahed, FILE *inputFile, FILE *outputFile)
 	}
 
 	destroy_tree(symbol_tree);
-	// delimiter was used as EOF
-	return delimiter == true ? AHEDOK : AHEDFail;
+	// NYT was used as EOF
+	return nyt == true ? AHEDOK : AHEDFail;
 }
 
 
