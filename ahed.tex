@@ -1,0 +1,103 @@
+\documentclass[12pt,a4paper,titlepage,final]{article}
+\usepackage[czech]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage[bookmarksopen,colorlinks,plainpages=false,urlcolor=blue,unicode]{hyperref}
+\usepackage{url}
+\usepackage{float}
+\usepackage{ifthen}
+\usepackage[dvipdf]{graphicx}
+\usepackage[top=3.5cm, left=2.5cm, text={17cm, 24cm}, ignorefoot]{geometry}
+
+\begin{document}
+\newpage
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% titulní strana
+\def\name{Lukáš Vokráčko}
+\def\login{xvokra00}
+\def\subject{Kódování a komprese dat}
+\def\project{Adaptivní Huffmanovo kódování}
+
+\newboolean{frontpage}
+% \setboolean{frontpage}{true}
+\setboolean{frontpage}{false}
+
+\ifthenelse{\boolean{frontpage}}
+{
+	\pagestyle{empty}
+	\input{title.tex}
+	\tableofcontents
+	\newpage
+	\pagestyle{plain}
+}
+{
+	\pagestyle{plain}
+	\vspace*{5px}
+	\hfill \name, \login \\
+	\vspace*{5px}
+	{\LARGE \subject}  \\
+	{\LARGE \project}  \\
+}
+
+\pagenumbering{arabic}
+\setcounter{page}{1}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Úvod}
+	Algoritmus dosahuje konstantní paměťové složitosti dosahující maxima v závislosti na počtu reálně počtu reálně
+	použitých symbolů, které jsou přenášeny a to díky tomu, že pro kažďý symbol je nutné vytvořit dva uzly ve stromu.
+	
+	Pro snadné vyhledání listových uzlů pro jednotlivé znaky je použito i pomocné pole ukazatelů,
+	které je ve své první polovině indexováno možnými znaky a ve druhé polovině jsou uloženy ukazatele
+	na nelistové uzly stromu.
+	Průchodem tohoto pole je efektivně řešeno vyhledávání ulzů se stejnou vahou a co nejmenenším číslem.
+
+	Při kódování znaků je nejdříve jištěn listový uzel odpovídající danému znaku a poté je sestrojen
+	jeho kód průchodem stromu směrem ke kořeni. Po narazení na kořen je nutno tento kód reverzovat aby odpovídal reálnému 
+	huffmanově kódu.
+
+	Pro vytvoření projektu bylo vytvořeno řešení v čistém jazyce C
+\subsection{Kódování}
+
+
+\subsection{Dekódování}
+
+	Při dekódování jsou ze vstupního souboru čteny jednotlivé bity
+	a dle jejich hodnoty se prochází stromem od kořene až do listového uzlu.
+	V listovém uzlu je pak přečten znak, jež odpovídá danému kódu a ten jen vypsán do výstupního souboru
+	v případě že se jedná o symbol jiný než NYT. V dalším průchodu se opět začíná v kořeni stromu.
+	V případě že je přečten NYT nebo jde o první symbol, je tento symbol vložen do stromu na místo
+	kde se do této doby vyskytoval NYT, kde jsou vytvořeny 2 listy, 1 pro symbol a druhý pro NYT.
+	Poté je provedena kontrola stromu, zda je stále platným Huffmanovým stromem a případně jeho modifikace.
+
+\subsubsection{Problémy}
+	Znak, který je přenášen poprvé a tudíž není zakódován se může vyskytovat na přelomu více bytů a 
+	je tedy nutné ukládat přečtený bity do pomocného bufferu.
+
+	Aby bylo možné poznat, kde končí kód, jež díky pohyblivé délce kódu nemusí být na stejném místě jako je přečtený EOF
+	tak je použit opět NYT. Konec souboru je tak detekován nastavbením přečtení NYT jako posledního symbolu
+	a konce vstupu ze souboru.
+
+	kód málo používaného znaku může dosahovat větší délky než je jeden byte a tudíž je při generování kódu nutné
+	používat pomocný buffer, který se stará o uložení kódu v celé své délce
+
+	Další z možných problémů je přetečení čítače, ke kterému by došlu v případě, že uzel by dosáhl váhy $2^{64}$.
+	Tento krajní případ není v tomto projektu oštřen, nebot takový případ považuji za silně nepravděpodobný vzhledem k tomu,
+	jak veliký souboru toto číslo představuje (milióny terabytů). V případě že by se tento problém chtěl řešit tak je možné použít následující
+	řešení
+
+\subsection{Modifikace stromu}
+Modifikace stromu probíhá následujícím způsobem:
+když je přečten znak, pokusím se najít uzel stromu, který má stejnou váhu jako uzel reprezentující symbol ale má nižší číslo a závislostiroveň 
+není přímým rodičem symbolu. Pokud takový uzel najdu, tak zaměním tyto dva uzly i s jejich podstromy ale s tím, že čísla těchto dvou uzlů zůstanou 
+na stejných místech. Tento postup se opakuje pro každý rodičovský uzel až ke kořeni stromu.
+
+Najití odpovídajícího uzlu je provedeno v konstantním čase, neboť všechny uzly ustromu jsou uloženy v pomocném poly.
+Najítí se tak zjednodušeno na hledání minimálního prvku v poli.
+
+určité optimalizace by bylo možné dosáhnout ukládáním uzlů se stejnou vahou do samostatné struktury řazené dle pořadového čisla
+která by držela ukazatele a nebylo by nutné procházet všechny položky pole ukazatelů na uzly stromu.
+Na jednu stranu by se tím zrychlilo vyhledání odpovídajícího uzlu, ale přibyla by řežie pro řazení a udržování těchto struktur aktuálních.
+
+
+\end{document}
