@@ -1,14 +1,21 @@
 CC=gcc
 FLAGS=-std=c11 -Wall -pedantic -Wextra
 
-all: main
+all: main doc
 main:
 		$(CC) $(FLAGS) -O2 ahed.c main.c -o ahed
 debug:
 		$(CC) $(FLAGS) -ggdb3 ahed.c main.c -o ahed
 
+doc:
+	pdflatex ahed.tex
+
 clean:
-	rm -rf ahed *.zip
+	rm -rf ahed *.zip *.aux *.log *.out ../kko.proj1.xvokra00.zip 2> /dev/null
 
 pack: clean
-	cd .. ; zip -r kko.proj1.xvokra00.zip kko.proj1.xvokra00 --exclude *.git* --exclude test.sh
+	mv test.sh ../
+	mv ahed.tex ../
+	cd .. ; zip -r kko.proj1.xvokra00.zip kko.proj1.xvokra00 --exclude *.git* 
+	mv ../test.sh .
+	mv ../ahed.tex .
