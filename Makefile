@@ -1,7 +1,7 @@
 CC=gcc
 FLAGS=-std=c11 -Wall -pedantic -Wextra
 
-all: main doc
+all: main
 main:
 		$(CC) $(FLAGS) -O2 ahed.c main.c -o ahed
 debug:
