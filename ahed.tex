@@ -43,61 +43,66 @@
 \setcounter{page}{1}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\section{Úvod}
-	Algoritmus dosahuje konstantní paměťové složitosti dosahující maxima v závislosti na počtu reálně počtu reálně
-	použitých symbolů, které jsou přenášeny a to díky tomu, že pro kažďý symbol je nutné vytvořit dva uzly ve stromu.
-	
-	Pro snadné vyhledání listových uzlů pro jednotlivé znaky je použito i pomocné pole ukazatelů,
-	které je ve své první polovině indexováno možnými znaky a ve druhé polovině jsou uloženy ukazatele
-	na nelistové uzly stromu.
-	Průchodem tohoto pole je efektivně řešeno vyhledávání ulzů se stejnou vahou a co nejmenenším číslem.
+\section{Huffmanovo kódování}
+Huffmanovo kódování je bezeztrátové prefixové kódování s proměnnou délkou kódu, 
+které přiřazuje kódy znakům ze vstupu dle jejich četnosti. Znakům s vysokou četností
+jsou přiřazeny kódy s menším bitovou délkou a méně častým znakům pak kódy s větší bitovou délkou. 
+Tím je docíleno komprese v případě, že na vstupu je pouze zlomek z celé vstupní abecedy
+nebo je četnost jednotlivých znaků jiná než rovnoměrná.
 
-	Při kódování znaků je nejdříve jištěn listový uzel odpovídající danému znaku a poté je sestrojen
-	jeho kód průchodem stromu směrem ke kořeni. Po narazení na kořen je nutno tento kód reverzovat aby odpovídal reálnému 
-	huffmanově kódu.
+Kód každého znaku je odvozen dle pozice v Huffmanově stromu. Kód znaku je sestrojen průchodem Huffmanovým stromem
+od kořene k listovému uzlu, jež odpovídá danému znaku.
+Pokud je při průchodu zvolena cesta levým podstromem, je ke kódu přidán bit $0$, v případě průchodu
+pravým stromem je to bit $1$.
 
-	Pro vytvoření projektu bylo vytvořeno řešení v čistém jazyce C
-\subsection{Kódování}
+\section{Adaptivní Huffmanovo kódování}
+Adaptivní verze Huffmanova kódování spočívá v kódování znaků za letu, kdy program dopředu nezná četnosti
+znaků a kódy jednotlivých znaků se během zpracování vstupu mění. To přináší problém modifikace stromu,
+kde je nutné při odeslání každého znaku inkrementovat počítadlo četnosti a přestavět strom tak, aby byl zachovával vlastnosti 
+Huffmanova stromu, což znamená, že spojeny jsou spolu vždy 2 uzly stromu s nejmenší četností.
 
+	\subsection{Tvorba Huffmanova stromu}
+	Na počátku je strom tvořen pouze uzlem odpovídajícím symbolu \texttt{NYT} (not yet transmitted) a číslem uzlu rovno 1.
+	Uzel \texttt{NYT} se ve stromu nachází po celou dobu, jeho četnost je pevně nastavena na nulu a jeho pozice
+	se během tvorby stromu mění. Tento uzel slouží jako oddělovač symbolů, které jsou přenášeny poprvé, tedy ve své nezakódované podobě.
 
-\subsection{Dekódování}
+		\subsubsection{Vkládání znaku}
+		Při vložení nového znaku dojde k vytvoření dvou uzlů v místě, kde je uložen symbol \texttt{NYT}. 
+		Pravý uzel bude mít číslo uzlu o jedna větší než rodičovský uzel a v levém uzlu bude toto číslo větší o dva.
+		Levý uzel je uzlem nově reprezentujícím \texttt{NYT} a do pravého uzlu je vložen nový symbol.
+		Po vložení znaku je provedena modifikace stromu popsaná níže, kde jako počáteční uzel je zvolen uzel reprezentující nový symbol.
 
-	Při dekódování jsou ze vstupního souboru čteny jednotlivé bity
-	a dle jejich hodnoty se prochází stromem od kořene až do listového uzlu.
-	V listovém uzlu je pak přečten znak, jež odpovídá danému kódu a ten jen vypsán do výstupního souboru
-	v případě že se jedná o symbol jiný než NYT. V dalším průchodu se opět začíná v kořeni stromu.
-	V případě že je přečten NYT nebo jde o první symbol, je tento symbol vložen do stromu na místo
-	kde se do této doby vyskytoval NYT, kde jsou vytvořeny 2 listy, 1 pro symbol a druhý pro NYT.
-	Poté je provedena kontrola stromu, zda je stále platným Huffmanovým stromem a případně jeho modifikace.
+		\subsubsection{Modifikace stromu}
+		Postup při modifikaci stromu je následující:
+			\begin{enumerate}
+				\item Je vyhledán uzel, který má počítadlo četností nastavené na stejné číslo jako aktuální uzel a zároveň má nižší číslo uzlu.
+				\item Existuje-li takový uzel a zároveň to není přímý rodič aktuálního uzlu, dojde k záměně těchto uzlů a to až na číslo uzlu.
+				\item Je inkrementováno počítadlo četností v aktuálním uzlu a jako aktuální uzel je nastaven rodič aktuálního uzlu uzlu.
+				\item Je li aktuální uzel kořenem stromu je proces modifikace ukončen. V opačném případě se pokračuje bodem 1.
+			\end{enumerate}
 
-\subsubsection{Problémy}
-	Znak, který je přenášen poprvé a tudíž není zakódován se může vyskytovat na přelomu více bytů a 
-	je tedy nutné ukládat přečtený bity do pomocného bufferu.
+	\subsection{Kodér}
+	Funkce kodéru spočívá ve čtení vstupního proudu dat a zápisu kódovaných symbolů do výstupního proudu dat.
+	Pokud kodér přijme znak, který ještě není uložen v Huffmanově stromu (není pro něj vytvořený kód),
+	kodér odešle kód pro symbol \texttt{NYT}, což značí, že bude přenášen nezakódovaný symbol.
+	Poté odešle znak v nezakódované podobě a znak vloží do Huffmanova stromu.
+	Pokud kodér přečte na vstupu znak, jež se ve stromu již vyskytuje, pouze odešle kód daného znaku, inkrementuje počítadlo
+	výskytů a modifikuje strom, kde aktuální uzel bude odpovídat uzlu reprezentují daný znak.
+	V případě konce souboru je nutné tuto událost zakódovat do výstupu, jinak by mohlo dojít k neplatnému stavu na 
+	straně dekodéru, neboť poslední symbol může být zakódován na pomezí dvou bytů a dekodér by pokračoval v dekódování zbylých bitů.
+	Pro tuto situaci se využije opět symbolu \texttt{NYT}.
 
-	Aby bylo možné poznat, kde končí kód, jež díky pohyblivé délce kódu nemusí být na stejném místě jako je přečtený EOF
-	tak je použit opět NYT. Konec souboru je tak detekován nastavbením přečtení NYT jako posledního symbolu
-	a konce vstupu ze souboru.
+	\subsection{Dekodér}
+	Dekodér čte jednotlivé bity ze vstupního proudu dat a prochází Huffmanovým stromem dle hodnoty přečteného bitu až do listového uzlu.
+	V listovém uzlu je pak přečten znak, jež odpovídá danému kódu a ten jen vypsán do výstupního proudu 
+	v případě, že se jedná o symbol jiný než \texttt{NYT}. 
+	V případě, že je přečten \texttt{NYT} nebo jde o první symbol, je tento symbol vložen do Huffmanova stromu.
 
-	kód málo používaného znaku může dosahovat větší délky než je jeden byte a tudíž je při generování kódu nutné
-	používat pomocný buffer, který se stará o uložení kódu v celé své délce
-
-	Další z možných problémů je přetečení čítače, ke kterému by došlu v případě, že uzel by dosáhl váhy $2^{64}$.
-	Tento krajní případ není v tomto projektu oštřen, nebot takový případ považuji za silně nepravděpodobný vzhledem k tomu,
-	jak veliký souboru toto číslo představuje (milióny terabytů). V případě že by se tento problém chtěl řešit tak je možné použít následující
-	řešení
-
-\subsection{Modifikace stromu}
-Modifikace stromu probíhá následujícím způsobem:
-když je přečten znak, pokusím se najít uzel stromu, který má stejnou váhu jako uzel reprezentující symbol ale má nižší číslo a závislostiroveň 
-není přímým rodičem symbolu. Pokud takový uzel najdu, tak zaměním tyto dva uzly i s jejich podstromy ale s tím, že čísla těchto dvou uzlů zůstanou 
-na stejných místech. Tento postup se opakuje pro každý rodičovský uzel až ke kořeni stromu.
-
-Najití odpovídajícího uzlu je provedeno v konstantním čase, neboť všechny uzly ustromu jsou uloženy v pomocném poly.
-Najítí se tak zjednodušeno na hledání minimálního prvku v poli.
-
-určité optimalizace by bylo možné dosáhnout ukládáním uzlů se stejnou vahou do samostatné struktury řazené dle pořadového čisla
-která by držela ukazatele a nebylo by nutné procházet všechny položky pole ukazatelů na uzly stromu.
-Na jednu stranu by se tím zrychlilo vyhledání odpovídajícího uzlu, ale přibyla by řežie pro řazení a udržování těchto struktur aktuálních.
-
+\section{Možné problémy}
+Jeden z možných problémů je přetečení čítače, ke kterému by došlo v případě, kdy uzel dosáhne četnosti $2^{64}$.
+Tento krajní případ není v tomto projektu ošetřen, neboť takový případ považuji za silně nepravděpodobný vzhledem k tomu,
+jakou velikost souboru toto číslo představuje (milióny TB). V případě, že by existoval požadavek na řešení tohoto problému,
+tak je možné použít následující postup: Četnost každého symbolu je snížena na polovinu a strom je přestavěn tak, aby
+zachovával vlastnosti Huffmanova stromu.
 
 \end{document}
