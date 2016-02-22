@@ -1,5 +1,5 @@
 CC=gcc
-FLAGS=-std=c11 -Wall -pedantic -Wextra
+FLAGS=-std=c99 -Wall -pedantic -Wextra
 
 all: main
 main:
